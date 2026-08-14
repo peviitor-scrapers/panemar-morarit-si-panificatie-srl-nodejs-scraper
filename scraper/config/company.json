@@ -1,10 +1,10 @@
 {
-  "id": "33159615",
-  "company": "EPAM SYSTEMS INTERNATIONAL SRL",
-  "brand": "EPAM",
+  "id": "4844886",
+  "company": "PANEMAR MORARIT SI PANIFICATIE SRL",
+  "brand": "PANEMAR",
   "status": "activ",
-  "location": ["București"],
-  "website": ["https://www.epam.com"],
-  "career": ["https://careers.epam.com"],
-  "scraperFile": "https://github.com/sebiboga/epam-systems-international-srl-nodejs-scraper/actions/workflows/job-seeker-ro-spider.yml"
+  "location": ["Cluj-Napoca"],
+  "website": ["https://panemar.ro"],
+  "career": ["https://panemar.ro/angajari/"],
+  "scraperFile": "https://github.com/sebiboga/panemar-morarit-si-panificatie-srl-nodejs-scraper/actions/workflows/job-seeker-ro-spider.yml"
 }

@@ -1,4 +1,5 @@
 import fetch from "node-fetch";
+import * as cheerio from "cheerio";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { validateAndGetCompany } from "./company.js";
@@ -8,11 +9,9 @@ import companyConfig from "./config/company.js";
 import scraperConfig from "./config/scraper.js";
 
 const COMPANY_CIF = companyConfig.id;
-const JOB_BASE = scraperConfig.apiBase;
-const ROMANIA_COUNTRY_ID = scraperConfig.apiCountryId;
+const CAREERS_URL = scraperConfig.careersUrl;
 
 const TIMEOUT = 10000;
-const PAGE_SIZE = 10;
 
 let COMPANY_NAME = null;
 
@@ -59,113 +58,77 @@ async function searchANOFM(cif) {
   return jobs;
 }
 
-async function fetchJobsPage(pageNum) {
-  const from = (pageNum - 1) * PAGE_SIZE;
-  const url = `${JOB_BASE}/api/jobs/v2/search/careers-i18n?from=${from}&lang=en&size=${PAGE_SIZE}&sortBy=relevance%3Brelocation%3Dasc&websiteLocale=en-us&facets=country%3D${ROMANIA_COUNTRY_ID}`;
-
-  const res = await fetch(url, {
+async function fetchCareersPage() {
+  const res = await fetch(CAREERS_URL, {
     headers: {
       "User-Agent": "job_seeker_ro_spider",
-      "Accept": "application/json"
-    }
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+    },
+    timeout: TIMEOUT
   });
 
   if (!res.ok) {
-    throw new Error(`API error ${res.status} for page=${pageNum}`);
+    throw new Error(`Careers page error: ${res.status}`);
   }
 
-  return await res.json();
+  return await res.text();
 }
 
-function parseApiJobs(apiData) {
-  const jobs = apiData.data?.jobs || [];
-  const total = apiData.data?.total || 0;
+function parsePanemarJobs(html) {
+  const $ = cheerio.load(html);
+  const jobs = [];
+  const seen = new Set();
+
+  $('select[name="menu-117"] option').each((_, el) => {
+    const title = $(el).text().trim();
+    if (!title || seen.has(title)) return;
+    seen.add(title);
+
+    const fragment = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+    jobs.push({
+      url: `${CAREERS_URL}#${fragment}`,
+      title,
+      workmode: "on-site",
+      location: ["Cluj-Napoca"],
+      tags: []
+    });
+  });
 
   return {
-    jobs: jobs.map(job => {
-      const vacancyType = job.vacancy_type || "Hybrid";
-      let workmode = "hybrid";
-      if (vacancyType.toLowerCase().includes("remote")) workmode = "remote";
-      else if (vacancyType.toLowerCase().includes("office")) workmode = "on-site";
-
-      const location = [];
-      if (job.city && job.city.length > 0) {
-        for (const c of job.city) {
-          if (c.name) location.push(c.name);
-        }
-      } else if (job.country?.[0]?.name) {
-        location.push(job.country[0].name);
-      }
-
-      const uid = job.uid || "";
-      const seoUrl = job.seo?.url || `/en/vacancy/${uid}_en`;
-      const url = seoUrl.startsWith('http') ? seoUrl : `${JOB_BASE}${seoUrl}`;
-
-      const tags = (job.skills || []).map(s => s.toLowerCase());
-
-      return {
-        url,
-        title: job.name,
-        uid: job.uid,
-        workmode,
-        location,
-        tags
-      };
-    }),
-    total
+    jobs,
+    total: jobs.length
   };
 }
 
 async function scrapeAllListings(testOnlyOnePage = false) {
   const allJobs = [];
   const seenUrls = new Set();
-  let page = 1;
-  let totalJobs = 0;
-  const MAX_PAGES = 10;
 
-  while (true) {
-    console.log(`Fetching API page: ${page}`);
-    const data = await fetchJobsPage(page);
-    const result = parseApiJobs(data);
-    const jobs = result.jobs;
+  console.log(`Fetching careers page: ${CAREERS_URL}`);
+  const html = await fetchCareersPage();
+  const result = parsePanemarJobs(html);
+  const jobs = result.jobs;
 
-    if (!jobs.length) {
-      console.log(`No jobs found on page ${page}, stopping.`);
-      break;
+  if (!jobs.length) {
+    console.log(`No jobs found on careers page, stopping.`);
+    return allJobs;
+  }
+
+  console.log(`Total jobs found on site: ${jobs.length}`);
+
+  let newJobs = 0;
+  for (const job of jobs) {
+    if (!seenUrls.has(job.url)) {
+      seenUrls.add(job.url);
+      allJobs.push(job);
+      newJobs++;
     }
+  }
+  console.log(`Page 1: ${jobs.length} jobs, ${newJobs} new (total: ${allJobs.length})`);
 
-    if (page === 1) {
-      totalJobs = result.total;
-      console.log(`Total jobs on site: ${totalJobs}`);
-    }
-
-    let newJobs = 0;
-    for (const job of jobs) {
-      if (!seenUrls.has(job.url)) {
-        seenUrls.add(job.url);
-        allJobs.push(job);
-        newJobs++;
-      }
-    }
-    console.log(`Page ${page}: ${jobs.length} jobs, ${newJobs} new (total: ${allJobs.length})`);
-
-    if (testOnlyOnePage) {
-      console.log("Test mode: stopping after page 1.");
-      break;
-    }
-
-    if (page >= MAX_PAGES) {
-      console.log(`Max pages (${MAX_PAGES}) reached, stopping.`);
-      break;
-    }
-
-    if (newJobs === 0) {
-      console.log(`No new jobs on page ${page}, stopping.`);
-      break;
-    }
-
-    page += 1;
-    await sleep(1000);
+  if (testOnlyOnePage) {
+    console.log("Test mode: stopping after page 1.");
   }
 
   console.log(`Total unique jobs collected: ${allJobs.length}`);
@@ -279,7 +242,7 @@ async function main() {
 
     const rawJobs = await scrapeAllListings(testOnlyOnePage);
     const scrapedCount = rawJobs.length;
-    console.log(`Jobs scraped from EPAM Careers website: ${scrapedCount}`);
+    console.log(`Jobs scraped from Panemar careers website: ${scrapedCount}`);
 
     if (!testOnlyOnePage) {
       const anofmJobs = await searchANOFM(cif);
@@ -295,7 +258,7 @@ async function main() {
     const jobs = rawJobs.map(job => mapToJobModel(job, cif));
 
     const payload = {
-      source: "epam.com",
+      source: "panemar.ro",
       scrapedAt: new Date().toISOString(),
       company: COMPANY_NAME,
       cif: cif,
@@ -357,7 +320,7 @@ async function main() {
     const finalResult = await querySOLR(COMPANY_CIF);
     console.log(`\n=== SUMMARY ===`);
     console.log(`Jobs existing in SOLR before scrape: ${existingCount}`);
-    console.log(`Jobs scraped from EPAM website: ${scrapedCount}`);
+    console.log(`Jobs scraped from Panemar website: ${scrapedCount}`);
     console.log(`Stale jobs attempted: ${staleUrls.length}`);
     console.log(`Jobs in SOLR after scrape: ${finalResult.numFound}`);
     console.log(`====================`);
@@ -371,7 +334,7 @@ async function main() {
   }
 }
 
-export { parseApiJobs, mapToJobModel, transformJobsForSOLR };
+export { parsePanemarJobs, mapToJobModel, transformJobsForSOLR };
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main();

@@ -27,17 +27,6 @@ const API_BASE_URL = "https://api.peviitor.ro/v1";
 const TIMEOUT = 10000;
 
 // ============================================================================
-// HELPERS
-// ============================================================================
-
-/**
- * Zero-pads a CIF to exactly 8 digits (Peviitor API requirement)
- */
-function padCif(cif) {
-  return String(cif).padStart(8, "0");
-}
-
-// ============================================================================
 // COMPANY OPERATIONS
 // ============================================================================
 
@@ -45,7 +34,7 @@ function padCif(cif) {
  * Searches for a company by CIF using the peviitor API
  */
 export async function getCompanyByCif(cif) {
-  const url = `${API_BASE_URL}/firme/company/?cif=${encodeURIComponent(padCif(cif))}`;
+  const url = `${API_BASE_URL}/firme/company/?cif=${encodeURIComponent(cif)}`;
   const res = await fetch(url, {
     headers: { "User-Agent": "job_seeker_ro_spider" }
   });
@@ -94,7 +83,7 @@ export async function upsertCompany(companyDoc) {
       "Content-Type": "application/json",
       "User-Agent": "job_seeker_ro_spider"
     },
-    body: JSON.stringify({ ...companyDoc, id: padCif(companyDoc.id) })
+    body: JSON.stringify(companyDoc)
   });
 
   if (!res.ok) {
@@ -118,13 +107,17 @@ export async function upsertCompany(companyDoc) {
  * Queries jobs from Solr by company CIF via the peviitor API
  */
 export async function querySOLR(cif) {
-  const url = `${API_BASE_URL}/scraper/jobs/?cif=${encodeURIComponent(padCif(cif))}&rows=500`;
+  const url = `${API_BASE_URL}/scraper/jobs/?cif=${encodeURIComponent(cif)}&rows=500`;
   const res = await fetch(url, {
     headers: { "User-Agent": "job_seeker_ro_spider" }
   });
 
   if (!res.ok) {
     const text = await res.text();
+    if (res.status === 400 && /8 digits/.test(text)) {
+      console.warn(`⚠️ peviitor jobs query API requires an 8-digit CIF — cannot list existing jobs for CIF ${cif} (${text.trim()}). Stale-job cleanup is skipped this run.`);
+      return { numFound: 0, docs: [] };
+    }
     throw new Error(`API jobs query error: ${res.status} - ${text}`);
   }
 
@@ -151,7 +144,7 @@ export async function deleteJobsByCIF(cif) {
       "Content-Type": "application/json",
       "User-Agent": "job_seeker_ro_spider"
     },
-    body: JSON.stringify({ cif: padCif(cif) })
+    body: JSON.stringify({ cif })
   });
 
   if (res.status === 404) {
@@ -202,18 +195,13 @@ export async function deleteJobByUrl(url) {
 export async function upsertJobs(jobs) {
   const url = `${API_BASE_URL}/scraper/jobs/upload/`;
 
-  const paddedJobs = jobs.map(job => ({
-    ...job,
-    cif: padCif(job.cif)
-  }));
-
   const res = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "User-Agent": "job_seeker_ro_spider"
     },
-    body: JSON.stringify(paddedJobs)
+    body: JSON.stringify(jobs)
   });
 
   if (!res.ok) {

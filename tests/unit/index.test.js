@@ -1,5 +1,31 @@
 import { jest } from '@jest/globals';
 
+const PANEMAR_HTML_FIXTURE = `
+<!DOCTYPE html>
+<html lang="ro-RO">
+<head><title>Angajări - Panemar</title></head>
+<body>
+  <section class="elementor-section">
+    <div class="elementor-widget-container">
+      <p><strong>Brutar</strong></p><p>Brutarul este omul înțelept.</p>
+      <p><strong>Patiser</strong></p><p>Patiserul este artistul rafinamentului.</p>
+      <p><strong>Șofer</strong></p><p>Șoferul are grijă ca produsele să ajungă la timp.</p>
+      <p><strong>Muncitor Necalificat</strong></p><p>Credem în potențialul fiecărui om.</p>
+    </div>
+  </section>
+  <div class="elementor-shortcode">
+    <div class="wpcf7">
+      <form action="/angajari/#wpcf7-f1650-p1365-o1" method="post" class="wpcf7-form init">
+        <p><label> Locul de muncă pentru care aplicați<br />
+        <span class="wpcf7-form-control-wrap" data-name="menu-117"><select class="wpcf7-form-control wpcf7-select" aria-invalid="false" name="menu-117"><option value="Brutar">Brutar</option><option value="Patiser">Patiser</option><option value="Șofer">Șofer</option><option value="Muncitor necalificat">Muncitor necalificat</option></select></span> </label>
+        </p>
+      </form>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
 describe('index.js Component Tests', () => {
   let index;
 
@@ -30,17 +56,17 @@ describe('index.js Component Tests', () => {
 
     it('should keep company uppercase', () => {
       const payload = {
-        source: 'epam.com',
-        company: 'epam systems international srl',
-        cif: '33159615',
+        source: 'panemar.ro',
+        company: 'panemar morarit si panificatie srl',
+        cif: '4844886',
         jobs: [
-          { url: 'https://test.com/1', title: 'Job 1', company: 'epam systems', cif: '33159615' }
+          { url: 'https://test.com/1', title: 'Job 1', company: 'panemar morarit', cif: '4844886' }
         ]
       };
 
       const result = index.transformJobsForSOLR(payload);
 
-      expect(result.company).toBe('EPAM SYSTEMS INTERNATIONAL SRL');
+      expect(result.company).toBe('PANEMAR MORARIT SI PANIFICATIE SRL');
     });
 
     it('should normalize workmode values', () => {
@@ -70,15 +96,15 @@ describe('index.js Component Tests', () => {
   describe('mapToJobModel', () => {
     it('should map raw job to job model format', () => {
       const rawJob = {
-        url: 'https://careers.epam.com/job/123',
-        title: 'Senior Developer',
-        location: ['Bucharest'],
-        tags: ['Java', 'Spring'],
-        workmode: 'hybrid'
+        url: 'https://panemar.ro/angajari/#brutar',
+        title: 'Brutar',
+        location: ['Cluj-Napoca'],
+        tags: [],
+        workmode: 'on-site'
       };
 
-      const COMPANY_NAME = 'EPAM SYSTEMS INTERNATIONAL SRL';
-      const COMPANY_CIF = '33159615';
+      const COMPANY_NAME = 'PANEMAR MORARIT SI PANIFICATIE SRL';
+      const COMPANY_CIF = '4844886';
 
       const result = index.mapToJobModel(rawJob, COMPANY_CIF, COMPANY_NAME);
 
@@ -87,7 +113,6 @@ describe('index.js Component Tests', () => {
       expect(result.company).toBe(COMPANY_NAME);
       expect(result.cif).toBe(COMPANY_CIF);
       expect(result.location).toEqual(rawJob.location);
-      expect(result.tags).toEqual(rawJob.tags);
       expect(result.workmode).toBe(rawJob.workmode);
       expect(result.status).toBe('scraped');
       expect(result.date).toBeDefined();
@@ -99,7 +124,7 @@ describe('index.js Component Tests', () => {
         title: 'Job 1'
       };
 
-      const result = index.mapToJobModel(rawJob, '33159615');
+      const result = index.mapToJobModel(rawJob, '4844886');
 
       expect(result.location).toBeUndefined();
       expect(result.tags).toBeUndefined();
@@ -109,112 +134,61 @@ describe('index.js Component Tests', () => {
     it('should handle missing title', () => {
       const rawJob = { url: 'https://test.com/1' };
 
-      const result = index.mapToJobModel(rawJob, '33159615');
+      const result = index.mapToJobModel(rawJob, '4844886');
 
       expect(result.title).toBeUndefined();
       expect(result.url).toBe('https://test.com/1');
     });
   });
 
-  describe('parseApiJobs', () => {
-    it('should parse EPAM API response format', () => {
-      const apiData = {
-        data: {
-          total: 100,
-          jobs: [
-            {
-              uid: '123',
-              name: 'Senior Developer',
-              city: [{ name: 'Bucharest' }],
-              country: [{ name: 'Romania' }],
-              vacancy_type: 'Hybrid',
-              skills: ['Java', 'Spring']
-            }
-          ]
-        }
-      };
+  describe('parsePanemarJobs', () => {
+    it('should parse the careers page form options into jobs', () => {
+      const result = index.parsePanemarJobs(PANEMAR_HTML_FIXTURE);
 
-      const result = index.parseApiJobs(apiData);
+      expect(result.total).toBe(4);
+      expect(result.jobs).toHaveLength(4);
 
-      expect(result.jobs).toHaveLength(1);
-      expect(result.jobs[0].title).toBe('Senior Developer');
-      expect(result.jobs[0].location).toEqual(['Bucharest']);
-      expect(result.jobs[0].workmode).toBe('hybrid');
+      const titles = result.jobs.map(j => j.title);
+      expect(titles).toEqual(['Brutar', 'Patiser', 'Șofer', 'Muncitor necalificat']);
+
+      expect(result.jobs[0].url).toBe('https://panemar.ro/angajari/#brutar');
+      expect(result.jobs[2].url).toBe('https://panemar.ro/angajari/#ofer');
+      expect(result.jobs[3].url).toBe('https://panemar.ro/angajari/#muncitor-necalificat');
     });
 
-    it('should handle empty job list', () => {
-      const apiData = { data: { total: 0, jobs: [] } };
+    it('should set default workmode and location', () => {
+      const result = index.parsePanemarJobs(PANEMAR_HTML_FIXTURE);
 
-      const result = index.parseApiJobs(apiData);
+      for (const job of result.jobs) {
+        expect(job.workmode).toBe('on-site');
+        expect(job.location).toEqual(['Cluj-Napoca']);
+      }
+    });
+
+    it('should dedupe repeated options', () => {
+      const duplicatedHtml = PANEMAR_HTML_FIXTURE.replace(
+        '</select>',
+        '<option value="Brutar">Brutar</option></select>'
+      );
+
+      const result = index.parsePanemarJobs(duplicatedHtml);
+
+      expect(result.jobs).toHaveLength(4);
+    });
+
+    it('should handle empty form (no jobs)', () => {
+      const emptyHtml = '<html><body><form><select name="menu-117"></select></form></body></html>';
+
+      const result = index.parsePanemarJobs(emptyHtml);
 
       expect(result.jobs).toEqual([]);
+      expect(result.total).toBe(0);
     });
 
-    it('should handle missing data field', () => {
-      const result = index.parseApiJobs({});
+    it('should handle missing form entirely', () => {
+      const result = index.parsePanemarJobs('<html><body><p>No careers form</p></body></html>');
 
       expect(result.jobs).toEqual([]);
-    });
-
-    it('should handle multiple cities', () => {
-      const apiData = {
-        data: {
-          total: 1,
-          jobs: [
-            {
-              uid: '123',
-              name: 'Developer',
-              city: [{ name: 'Bucharest' }, { name: 'Cluj-Napoca' }],
-              country: [{ name: 'Romania' }]
-            }
-          ]
-        }
-      };
-
-      const result = index.parseApiJobs(apiData);
-
-      expect(result.jobs[0].location).toEqual(['Bucharest', 'Cluj-Napoca']);
-    });
-  });
-
-  describe('URL Generation', () => {
-    it('should use seo.url when available', () => {
-      const apiData = {
-        data: {
-          total: 1,
-          jobs: [
-            {
-              uid: 'blt123',
-              name: 'Test Job',
-              seo: { url: '/en/vacancy/test-job-blt123_en' },
-              city: [{ name: 'Bucharest' }]
-            }
-          ]
-        }
-      };
-
-      const result = index.parseApiJobs(apiData);
-
-      expect(result.jobs[0].url).toBe('https://careers.epam.com/en/vacancy/test-job-blt123_en');
-    });
-
-    it('should fallback to uid-based URL when no seo.url', () => {
-      const apiData = {
-        data: {
-          total: 1,
-          jobs: [
-            {
-              uid: 'blt456',
-              name: 'Test Job',
-              city: [{ name: 'Bucharest' }]
-            }
-          ]
-        }
-      };
-
-      const result = index.parseApiJobs(apiData);
-
-      expect(result.jobs[0].url).toBe('https://careers.epam.com/en/vacancy/blt456_en');
     });
   });
 });

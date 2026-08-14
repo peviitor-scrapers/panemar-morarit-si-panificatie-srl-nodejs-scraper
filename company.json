@@ -1,0 +1,84 @@
+{
+  "validatedAt": "2026-08-14T11:06:20.386Z",
+  "source": "ANAF",
+  "brand": "PANEMAR",
+  "anaf": {
+    "cui": 4844886,
+    "name": "PANEMAR MORARIT SI PANIFICATIE SRL",
+    "address": "JUD. CLUJ, MUN. CLUJ-NAPOCA, STR. TÂRNAVELOR, NR.28",
+    "registrationNumber": "J1993003592128",
+    "phone": "0264449469",
+    "fax": "0264449468",
+    "postalCode": "400597",
+    "caenCode": "1071",
+    "iban": "",
+    "registrationState": "INREGISTRAT din data 03.11.1993",
+    "registrationDate": "1993-11-03",
+    "fiscalAuthority": "Administraţia Fiscală pentru Contribuabili Mijlocii - Cluj",
+    "ownershipForm": "PROPR.PRIVATA-CAPITAL PRIVAT AUTOHTON",
+    "organizationForm": "PERSOANA JURIDICA",
+    "legalForm": "SOCIETATE COMERCIALĂ CU RĂSPUNDERE LIMITATĂ",
+    "vatRegistered": true,
+    "vatPeriods": [
+      {
+        "start": "1995-02-01",
+        "end": null,
+        "yearStart": "",
+        "message": ""
+      }
+    ],
+    "cashBasisVat": false,
+    "cashBasisVatStart": null,
+    "cashBasisVatEnd": null,
+    "inactive": false,
+    "inactiveSince": null,
+    "reactivatedSince": null,
+    "splitVat": false,
+    "eFacturaRegistered": true,
+    "headquartersAddress": {
+      "street": "Str. Târnavelor",
+      "number": "28",
+      "locality": "Mun. Cluj-Napoca",
+      "county": "CLUJ",
+      "country": "",
+      "postalCode": "400597"
+    },
+    "fiscalAddress": {
+      "street": "",
+      "number": "",
+      "locality": "",
+      "county": "",
+      "country": "",
+      "postalCode": ""
+    },
+    "administrators": [],
+    "authorizedCaenCodes": [],
+    "onrcStatus": 0,
+    "onrcStatusLabel": "Funcțiune"
+  },
+  "peviitor": {
+    "id": "4844886",
+    "company": "PANEMAR MORARIT SI PANIFICATIE SRL",
+    "brand": "PANEMAR",
+    "status": "activ",
+    "location": [
+      "JUD. CLUJ, MUN. CLUJ-NAPOCA, STR. TÂRNAVELOR, NR.28"
+    ],
+    "website": [
+      "https://panemar.ro"
+    ],
+    "career": [
+      "https://panemar.ro/angajari/"
+    ],
+    "lastScraped": "2026-08-14",
+    "_version_": 1873496490858512400,
+    "_root_": "4844886"
+  },
+  "summary": {
+    "company": "PANEMAR MORARIT SI PANIFICATIE SRL",
+    "cif": "4844886",
+    "active": true,
+    "inactiveSince": null,
+    "address": "JUD. CLUJ, MUN. CLUJ-NAPOCA, STR. TÂRNAVELOR, NR.28"
+  }
+}

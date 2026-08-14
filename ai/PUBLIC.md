@@ -1,6 +1,6 @@
 # PUBLIC.md — Repository Must Be PUBLIC
 
-All scrapers derived from this EPAM template **MUST** be **PUBLIC** repositories.
+This scraper is derived from the EPAM template — all derived scrapers in the ecosystem **MUST** be **PUBLIC** repositories.
 
 ## Why?
 
