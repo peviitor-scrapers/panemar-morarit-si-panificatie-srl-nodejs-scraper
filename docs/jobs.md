@@ -14,7 +14,7 @@
 
 ## Current Job Listings (4)
 
-_Generated: 2026-08-14T11:04:47.482Z_
+_Generated: 2026-08-14T11:08:15.063Z_
 
 ### Brutar
 
