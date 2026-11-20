@@ -10,11 +10,11 @@
 | Location | JUD. CLUJ, MUN. CLUJ-NAPOCA, STR. TÂRNAVELOR, NR.28 |
 | Website | [https://panemar.ro](https://panemar.ro) |
 | Careers | [https://panemar.ro/angajari/](https://panemar.ro/angajari/) |
-| Last Scraped | 2026-11-19 |
+| Last Scraped | 2026-11-20 |
 
 ## Current Job Listings (4)
 
-_Generated: 2026-11-19T15:31:16.065Z_
+_Generated: 2026-11-20T15:10:27.504Z_
 
 ### Brutar
 
